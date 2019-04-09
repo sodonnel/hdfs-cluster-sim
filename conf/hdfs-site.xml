@@ -1,0 +1,28 @@
+<configuration>
+  <property>
+    <name>fs.default.name</name>
+    <value>hdfs://localhost/</value>
+  </property> 
+  <property>
+    <name>fs.defaultFS</name>
+    <value>hdfs://localhost/</value>
+  </property>
+
+
+  <!-- Ensure the simulated DNs just bind to random free ports 
+       Initially using localhost for development, but 0.0.0.0 may better
+  -->
+  <property>
+    <name>dfs.datanode.address</name>
+    <value>127.0.0.1:0</value>
+  </property>
+  <property>
+    <name>dfs.datanode.ipc.address</name>
+    <value>127.0.0.1:0</value>
+  </property>
+  <property>
+    <name>dfs.datanode.http.address</name>
+    <value>127.0.0.1:0</value>
+  </property>
+
+</configuration>
