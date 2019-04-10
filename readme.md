@@ -111,7 +111,7 @@ Assuming you have a namenode running locally, you need to ensure all the CDH jar
 
 ```
 export CLASSPATH=`hadoop classpath`:target/DnSim-1.0-SNAPSHOT.jar
-java -Dlog4j.configuration=/Users/sodonnell/source/cluster_sim/conf/log4j.properties sodonnell.CommandShell
+java -Dlog4j.configuration="file:./conf/log4j.properties" sodonnell.CommandShell
 ```
 
 Note the path to the custom log4j.properties which prevent the Datanode logging going to the console by default.
