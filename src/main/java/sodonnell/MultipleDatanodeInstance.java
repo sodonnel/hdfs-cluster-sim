@@ -16,8 +16,11 @@ import org.apache.hadoop.hdfs.server.datanode.SimulatedFSDataset;
 import org.apache.hadoop.hdfs.server.datanode.fsdataset.FsDatasetSpi;
 import org.apache.hadoop.hdfs.server.protocol.DatanodeProtocol;
 import org.apache.hadoop.hdfs.tools.DFSAdmin;
+import org.apache.log4j.Logger;
 
 public class MultipleDatanodeInstance {
+
+  private final static Logger LOG = Logger.getLogger(MultipleDatanodeInstance.class);
   
   private int XferPort = 0;
   private int InfoPort = 0;

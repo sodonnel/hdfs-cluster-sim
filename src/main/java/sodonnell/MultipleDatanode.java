@@ -46,10 +46,13 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.hdfs.server.datanode.SecureDataNodeStarter.SecureResources;
 import org.apache.hadoop.hdfs.server.datanode.SimulatedFSDataset;
 import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
+import org.apache.log4j.Logger;
 
 public class MultipleDatanode {
   
   static { DefaultMetricsSystem.setMiniClusterMode(true); }
+
+  private final static Logger LOG = Logger.getLogger(MultipleDatanode.class);
   
   private final static String STORAGE_ROOT_KEY = "multipledatanode.storage.root";
   private final static String STORAGE_ROOT_DEFAULT = "/tmp/hadoop-multipledatanode/storage";
@@ -76,8 +79,7 @@ public class MultipleDatanode {
   
   private static final String USAGE =
       "Usage: sodonnell.MultipleDatanode numberOfNodes\n" +
-          "   numberOfNodes should be an integer specifing how many DNs to start in this JVM.\n" +
-          "   storageRoot path inside which the dataNode data directories will be created.\n";
+          "   numberOfNodes should be an integer specifing how many DNs to start in this JVM.\n";
 
   static void printUsageExit(String err) {
     System.out.println(err);
@@ -86,7 +88,7 @@ public class MultipleDatanode {
   }
   
   public static void main(String[] args) {
-    if (args.length < 2) {
+    if (args.length < 1) {
       printUsageExit("Insufficent argumenets");
       System.out.println("");
     }
@@ -219,18 +221,18 @@ public class MultipleDatanode {
         Thread.sleep(100);
       }
 
-      if (isSimulated) {
-        String blockListFile = dataDirectoryRoot + "/" + dnId + "/blockList";
-        if (new File(blockListFile).exists()) {
-          dni.injectBlocksInFile(blockListFile, blockPoolId);
-        }
-      }
-
       if (dni == null) {
         dni = new MultipleDatanodeInstance(dnId, dn);
         runningDataNodes.put(dnId, dni);
       } else {
         dni.setNewDnInstance(dn);
+      }
+
+      if (isSimulated) {
+        String blockListFile = dataDirectoryRoot + "/" + dnId + "/blockList";
+        if (new File(blockListFile).exists()) {
+          dni.injectBlocksInFile(blockListFile, blockPoolId);
+        }
       }
 
       return dni;

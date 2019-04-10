@@ -1,5 +1,7 @@
 package sodonnell;
 
+import org.apache.log4j.Logger;
+
 import java.io.Console;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -8,6 +10,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 
 public class CommandShell {
+
+  private final static Logger LOG = Logger.getLogger(CommandShell.class);
   
   public static void main(String[] args) {
     CommandShell shell = new CommandShell();
