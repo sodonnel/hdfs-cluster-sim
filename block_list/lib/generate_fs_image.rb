@@ -151,6 +151,9 @@ class HdfsImage
         parent_id += 1
       end
     end
+    if counter != 0
+      @fh.puts "</directory>"
+    end
   
     @fh.puts "</INodeDirectorySection>"
   end
