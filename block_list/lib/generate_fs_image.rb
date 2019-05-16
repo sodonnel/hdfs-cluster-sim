@@ -173,7 +173,7 @@ class HdfsImage
 
   @fh.puts "<?xml version=\"1.0\"?>
 <fsimage><version><layoutVersion>#{@layout_version}</layoutVersion><onDiskVersion>1</onDiskVersion><oivRevision>cfc9d666e5457312afdd9e215e9691667d736796</oivRevision></version>
-<NameSection><namespaceId>#{@namespace_id}</namespaceId><genstampV1>1000</genstampV1><genstampV2>#{last_genstamp}</genstampV2><genstampV1Limit>0</genstampV1Limit><lastAllocatedBlockId>#{last_block_id}</lastAllocatedBlockId><txid>39</txid></NameSection>
+<NameSection><namespaceId>#{@namespace_id}</namespaceId><genstampV1>1000</genstampV1><genstampV2>#{last_genstamp}</genstampV2><genstampV1Limit>0</genstampV1Limit><lastAllocatedBlockId>#{last_block_id}</lastAllocatedBlockId><txid>0</txid></NameSection>
 <ErasureCodingSection>
 <erasureCodingPolicy>
 <policyId>1</policyId><policyName>RS-6-3-1024k</policyName><cellSize>1048576</cellSize><policyState>DISABLED</policyState><ecSchema>
