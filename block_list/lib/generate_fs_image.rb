@@ -159,11 +159,11 @@ class HdfsImage
   end
   
   def output_inode_dir(id, name, quota="-1")
-    @fh.puts "<inode><id>#{id}</id><type>DIRECTORY</type><name>#{name}</name><mtime>1554197634733</mtime><permission>superuser:supergroup:0755</permission><nsquota>#{quota}</nsquota><dsquota>-1</dsquota></inode>"
+    @fh.puts "<inode><id>#{id}</id><type>DIRECTORY</type><name>#{name}</name><mtime>1554197634733</mtime><permission>hdfs:supergroup:0755</permission><nsquota>#{quota}</nsquota><dsquota>-1</dsquota></inode>"
   end
 
   def output_inode_file(id, name, block_id, genstamp, rep_factor, size)
-    @fh.puts "<inode><id>#{id}</id><type>FILE</type><name>#{name}</name><replication>#{rep_factor}</replication><mtime>1554285467270</mtime><atime>1554285466577</atime><preferredBlockSize>134217728</preferredBlockSize><permission>superuser:supergroup:0644</permission><blocks><block><id>#{block_id}</id><genstamp>#{genstamp}</genstamp><numBytes>#{size}</numBytes></block>
+    @fh.puts "<inode><id>#{id}</id><type>FILE</type><name>#{name}</name><replication>#{rep_factor}</replication><mtime>1554285467270</mtime><atime>1554285466577</atime><preferredBlockSize>134217728</preferredBlockSize><permission>hdfs:supergroup:0644</permission><blocks><block><id>#{block_id}</id><genstamp>#{genstamp}</genstamp><numBytes>#{size}</numBytes></block>
 </blocks><storagePolicyId>0</storagePolicyId></inode>"
   end
 
