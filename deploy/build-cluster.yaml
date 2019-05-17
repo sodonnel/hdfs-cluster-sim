@@ -1,0 +1,80 @@
+---
+
+- name: Common host setup
+  gather_facts: true
+  hosts: all
+  vars_files:
+    - vars.yaml
+  vars:
+    HOST_COUNT: "{{ ansible_play_hosts | length }}"
+    
+  tasks:
+
+    - import_tasks: ./playbooks/initialise_disks.yaml
+      when: format_disks
+      
+    - import_tasks: ./playbooks/create_hdfs_user_and_keys.yaml
+
+    - import_tasks: ./playbooks/deploy_software.yaml
+
+    - import_tasks: ./playbooks/deploy_hdfs_config.yaml
+      vars:
+        config_dir: /etc/hadoop/conf
+
+- name: Setup Namenode Host
+  gather_facts: true
+  hosts: namenode
+  vars_files:
+    - vars.yaml
+
+  tasks:
+
+    - import_tasks: ./playbooks/bootstrap_namenode.yaml
+      vars:
+        namenode_data_dir: "{{ storage_root }}/dfs/nn/current"
+        config_dir: "/etc/hadoop/conf"
+        hdfs_exe_path: "{{ storage_root }}/cdh/cdh/bin"
+
+- name: Setup Datanode Hosts
+  gather_facts: true
+  hosts: datanodes
+  vars_files:
+    - vars.yaml
+
+  tasks:
+
+    # DATANODE
+    - name: Create Datanode Storage Directory
+      # We only need to create the top level dir for each DN, as the DN will create the dirs
+      # for each storage volume
+      become: yes
+      become_user: root
+      file:
+        path: "{{ storage_root }}/dfs/dn/{{ item }}"
+        state: directory
+        owner: hdfs
+        group: hdfs
+        mode: 0755
+      with_sequence: "start=1 end={{ datanodes_per_host }} "
+
+    - name: Copy the datanode blocklist files into place
+      become: yes
+      become_user: hdfs
+      # copy-blocklist.sh hostname_for_nn 
+      command: "/home/hdfs/hdfs-cluster-sim/bin/copy-blocklist-files.sh {{ namenode_hostname }} {{ storage_root }}/dfs/nn {{ datanodes_per_host }} {{ play_hosts.index(inventory_hostname) }} {{ storage_root }}/dfs/dn"
+      args:
+        creates: "{{ storage_root }}/dfs/dn/1/blockList"
+      environment:
+        PATH: "{{ storage_root }}/cdh/cdh/bin:/usr/bin/:$PATH"
+        HADOOP_CONF_DIR: /etc/hadoop/conf
+        JAVA_HOME: /usr/java/default
+
+    - name: Copy Multiple Datanode jar to the host
+      become: yes
+      become_user: hdfs
+      copy:
+        src: "{{ local_archive_location }}/DnSim-1.0-SNAPSHOT.jar"
+        dest: /home/hdfs/hdfs-cluster-sim/target/DnSim-1.0-SNAPSHOT.jar
+        owner: hdfs
+        group: hdfs
+        mode: 0775

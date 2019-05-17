@@ -1,0 +1,45 @@
+# Only relevant if you want to format and mount disks, eg in EC2
+# No more than 2 disks are really needed for the current setup.
+# One for data and one for logs.
+format_disks: false
+raw_devices:
+  - /dev/nvme1n1
+  - /dev/nvme2n1
+mount_points:
+  - /disk1
+  - /disk2
+  
+
+# Location and filenames of the local hdfs, java, etc builds
+# to load onto the cluster
+local_archive_location: /Users/sodonnell/source/files
+cdh_version: "hadoop-3.0.0-cdh6.1.0"
+java_version: "jdk1.8.0_201"
+java_archive: "jdk-8u201-linux-x64.tar.gz"
+
+
+log_root: "/disk2"
+storage_root: "/disk1"
+hdfs_log_directory: "/var/log/hadoop-hdfs"
+
+# Configure the number of DN, heap sizes, file count etc
+namenode_heap_mb: 500
+datanode_heap_mb: 500
+namenode_file_count: 100000
+datanode_count: 5
+datanodes_per_host: 5
+datanode_volume_count: 7
+
+# Add any additional hdfs-site.xml parameters here which will be added to the end of the
+# hdfs-site.xml in the order defined here
+hdfs_site_params:
+  - { name: "multipledatanode.storage.root", value: "{{ storage_root }}/dfs/dn" }
+  - { name: "multipledatanode.storage.simulated", value: "true" }
+  - { name: "multipledatanode.bpid", value: "BP-129929940-10.0.130.96-1554981864380" }  # Currently hard coded in the generated image and VERSION template
+  - { name: "multipledatanode.storage.count", value: "{{ datanode_volume_count }}" }
+  - { name: "dfs.datanode.simulateddatastorage.capacity", value: "2199023255552" }  # 2TB
+
+# DERIVED - should not need to edit
+namenode_hostname: "{{ groups['namenode'] | first }}"
+
+

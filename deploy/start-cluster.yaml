@@ -1,0 +1,36 @@
+- name: Start the namenode
+  gather_facts: false
+  hosts: namenode
+  vars_files:
+    - vars.yaml
+
+  tasks:
+
+    - name: Start the namenode
+      become: yes
+      become_user: hdfs
+      command: "/home/hdfs/hdfs-cluster-sim/bin/start-namenode-and-wait-for-rpcs.sh {{ log_root }}{{ hdfs_log_directory }}"
+      args:
+      environment:
+        PATH: "{{ storage_root }}/cdh/cdh/bin:/usr/bin/:/usr/java/default/bin:$PATH"
+        HADOOP_CONF_DIR: /etc/hadoop/conf
+        JAVA_HOME: /usr/java/default
+
+- name: Start all the datanodes
+  gather_facts: false
+  hosts: datanodes
+  vars_files:
+    - vars.yaml
+
+  tasks:
+
+    - name: Start the Datanodesnamenode
+      become: yes
+      become_user: hdfs
+      command: "/home/hdfs/hdfs-cluster-sim/bin/start-multiple-datanodes.sh {{ log_root }}{{ hdfs_log_directory }} {{ datanodes_per_host }} {{ datanode_heap_mb }}"
+      args:
+        chdir: /home/hdfs/hdfs-cluster-sim/bin
+      environment:
+        PATH: "{{ storage_root }}/cdh/cdh/bin:/usr/bin/:/usr/java/default/bin:$PATH"
+        HADOOP_CONF_DIR: /etc/hadoop/conf
+        JAVA_HOME: /usr/java/default

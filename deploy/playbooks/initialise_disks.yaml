@@ -1,0 +1,28 @@
+- name: Create filesystem on raw devices
+  become: yes
+  become_user: root
+  filesystem:
+    fstype: ext4
+    dev: "{{ item }}"
+  loop: "{{ raw_devices }}"
+
+- name: Create storage mount points
+  become: yes
+  become_user: root
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+  loop: "{{ mount_points }}"
+
+- name: Mount
+  become: yes
+  become_user: root
+  mount:
+    path: "{{ mount_points[item.0] }}"
+    src: "{{ item.1 }}"
+    fstype: ext4
+    state: mounted
+  with_indexed_items: "{{ raw_devices }}"

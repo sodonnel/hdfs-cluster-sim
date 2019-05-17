@@ -1,0 +1,71 @@
+- name: Create location for CDH tar ball
+  become: yes
+  become_user: root
+  file:
+    path: "{{ storage_root }}/cdh"
+    state: directory
+    owner: hdfs
+    group: hdfs
+    mode: 0755
+
+- name: Deploy Hadoop Tarball
+  become: yes
+  become_user: hdfs
+  unarchive:
+    src: "{{ local_archive_location }}/{{ cdh_version }}.tar.gz"
+    dest: "{{ storage_root }}/cdh"
+    creates: "{{ storage_root }}/cdh/{{ cdh_version }}"
+
+- name: Link for CDH Tarball
+  become: yes
+  become_user: root
+  file:
+    dest: "{{ storage_root }}/cdh/cdh"
+    src: "{{ storage_root }}/cdh/{{ cdh_version }}"
+    state: link
+    owner: hdfs
+    group: hdfs
+    mode: 0755
+
+- name: Create location for Java Install
+  become: yes
+  become_user: root
+  file:
+    path: /usr/java
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Deploy Java Tarball
+  become: yes
+  become_user: root
+  unarchive:
+    src: "{{ local_archive_location }}/{{ java_archive }}"
+    dest: /usr/java
+    creates: "/usr/java/{{ java_version }}"
+
+- name: Link for Default Java
+  become: yes
+  become_user: root
+  file:
+    dest: /usr/java/default
+    src: "/usr/java/{{ java_version }}"
+    state: link
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Ensure Ruby Installed
+  become: yes
+  become_user: root
+  yum:
+    name: ['ruby', 'git']
+    state: latest
+
+- name: Clone hdfs-cluster-sim repo
+  become: yes
+  become_user: hdfs
+  git:
+    repo: https://github.com/sodonnel/hdfs-cluster-sim.git
+    dest: /home/hdfs/hdfs-cluster-sim

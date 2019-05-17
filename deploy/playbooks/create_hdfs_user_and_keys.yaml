@@ -1,0 +1,43 @@
+- name: Generate keypair for cluster passwordless ssh
+  local_action: command ssh-keygen -t rsa -b 4096 -f ./tmp/id_rsa -q -N ""
+  args:
+    creates: ./tmp/id_rsa
+        
+- name: Ensure group "hdfs" exists
+  become: yes
+  become_user: root
+  group:
+    name: hdfs
+    state: present
+
+- name: Add the user hdfs
+  become: yes
+  become_user: root
+  user:
+    name: hdfs
+    comment: HDFS service account
+    uid: 1040
+    group: hdfs
+    create_home: yes
+    home: /home/hdfs
+
+- name: Set authorized key for the HDFS user
+  become: yes
+  become_user: hdfs
+  authorized_key:
+    user: hdfs
+    state: present
+    key: "{{ lookup('file', './tmp/id_rsa.pub') }}"
+
+- name: Copy Key Files to the host
+  become: yes
+  become_user: hdfs
+  copy:
+    src: "./tmp/{{ item }}"
+    dest: /home/hdfs/.ssh/
+    owner: hdfs
+    group: hdfs
+    mode: 0600
+  with_items:
+    - id_rsa
+    - id_rsa.pub

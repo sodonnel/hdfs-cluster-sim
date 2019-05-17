@@ -1,0 +1,34 @@
+- name: HDFS namenode data directory
+  become: yes
+  become_user: root
+  file:
+    path: "{{ namenode_data_dir }}"
+    state: directory
+    owner: hdfs
+    group: hdfs
+    mode: 0755
+
+
+- name: Format namenode with metadata files
+  become: yes
+  become_user: hdfs
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: hdfs
+    group: hdfs
+    mode: 0644
+  with_items:
+    - { src: ./templates/namenode_VERSION.j2, dest: "{{ namenode_data_dir }}/VERSION" }
+    - { src: ./templates/namenode_seen_txid.j2 , dest: "{{ namenode_data_dir }}/seen_txid" }
+
+- name: Bootstrap the NN with the generated image
+  become: yes
+  become_user: hdfs
+  command: "/home/hdfs/hdfs-cluster-sim/bin/bootstrap-namenode.sh {{ namenode_file_count }} {{ namenode_data_dir }}/.. {{ namenode_data_dir }} {{ datanode_count }}"
+  args:
+    creates: "{{ namenode_data_dir }}/fsimage_0000000000000000000"
+  environment:
+    PATH: "{{ hdfs_exe_path }}:/usr/bin/:$PATH"
+    HADOOP_CONF_DIR: "{{ config_dir }}"
+    JAVA_HOME: /usr/java/default

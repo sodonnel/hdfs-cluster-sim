@@ -1,0 +1,21 @@
+export JAVA_HOME=/usr/java/default
+export HADOOP_CONF_DIR=/etc/hadoop/conf
+export HADOOP_HEAPSIZE_MAX={{ namenode_heap_mb }}
+
+export HADOOP_LOG_DIR={{ log_root }}/var/log/hadoop-hdfs
+
+HDFS_NAMENODE_OPTS="-XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -Dhadoop.root.logger=INFO,RFA $HDFS_NAMENODE_OPTS -Dhadoop.log.file=hadoop-cmf-HDFS-1-NAMENODE-{{ ansible_hostname }}.log.out"
+
+export HADOOP_OS_TYPE=${HADOOP_OS_TYPE:-$(uname -s)}
+
+# Under certain conditions, Java on OS X will throw SCDynamicStore errors
+# in the system logs.
+# See HADOOP-8719 for more information.  If one needs Kerberos
+# support on OS X, one will want to change/remove this extra bit.
+case ${HADOOP_OS_TYPE} in
+  Darwin*)
+    export HADOOP_OPTS="${HADOOP_OPTS} -Djava.security.krb5.realm= "
+    export HADOOP_OPTS="${HADOOP_OPTS} -Djava.security.krb5.kdc= "
+    export HADOOP_OPTS="${HADOOP_OPTS} -Djava.security.krb5.conf= "
+  ;;
+esac

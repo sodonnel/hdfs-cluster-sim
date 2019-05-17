@@ -1,0 +1,55 @@
+- name: Location for HDFS config
+  become: yes
+  become_user: root
+  file:
+    path: "{{ config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Base log directory location
+  become: yes
+  become_user: root
+  file:
+    path: "{{ log_root }}/var/log"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: HDFS Log directory location
+  become: yes
+  become_user: root
+  file:
+    path: "{{ log_root }}/var/log/hadoop-hdfs"
+    state: directory
+    owner: hdfs
+    group: hdfs
+    mode: 0755
+
+- name: Hadoop configuration
+  become: yes
+  become_user: root
+  template:
+    src: "./templates/{{ item.src  }}"
+    dest: "{{ config_dir  }}/{{ item.dest }}"
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - { src: hdfs-site.xml.j2, dest: hdfs-site.xml }
+    - { src: core-site.xml.j2, dest: core-site.xml }
+    - { src: hadoop-env.sh.j2, dest: hadoop-env.sh }
+    - { src: log4j.properties.j2, dest: log4j.properties }
+
+
+- name: Set HDFS path and config dir for all users
+  become: yes
+  become_user: root
+  template:
+    src: ./templates/hdfs.sh.profile.j2
+    dest: /etc/profile.d/hdfs.sh
+    owner: root
+    group: root
+    mode: 0644
