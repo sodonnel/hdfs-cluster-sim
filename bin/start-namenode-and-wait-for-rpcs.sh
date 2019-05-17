@@ -12,7 +12,8 @@ if (( $# != 1 )); then
 fi
 
 
-hdfs namenode > "$1/stdouterr" 2>&1 < /dev/null &
+nohup hdfs namenode > "$1/stdouterr" 2>&1 < /dev/null &
+disown
 echo $! > "$1/nn_pid"
 
 hdfs dfsadmin -safemode get
