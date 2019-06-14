@@ -10,23 +10,23 @@ public class MultipleDatanodeInstanceList {
   private List<Throwable> exceptions =
       new ArrayList<Throwable>();
   
-  public List<MultipleDatanodeInstance> getInstances() {
+  public synchronized List<MultipleDatanodeInstance> getInstances() {
     return instances;
   }
   
-  public void addInstance(MultipleDatanodeInstance dni) {
+  public synchronized void addInstance(MultipleDatanodeInstance dni) {
     instances.add(dni);
   }
   
-  public List<Throwable> getExceptions() {
+  public synchronized List<Throwable> getExceptions() {
     return exceptions;
   }
   
-  public void addException(Throwable e) {
+  public synchronized void addException(Throwable e) {
     exceptions.add(e);    
   }
   
-  public boolean hasExceptions() {
+  public synchronized boolean hasExceptions() {
     if (exceptions.size() != 0) {
       return true;
     } else {

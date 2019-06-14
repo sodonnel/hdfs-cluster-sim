@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -68,14 +69,14 @@ public class MultipleDatanode {
   
   private final static String DN_STORAGE_KEY = "dfs.datanode.data.dir";
   
-  private final static String DN_XFER_ADDRESS_KEY = "dfs.datanode.address";  
-  private final static String DN_XFER_ADDRESS_DEFAULT = "0.0.0.0:0";
+  public final static String DN_XFER_ADDRESS_KEY = "dfs.datanode.address";
+  public final static String DN_XFER_ADDRESS_DEFAULT = "0.0.0.0:0";
   
-  private final static String DN_IPC_ADDRESS_KEY = "dfs.datanode.ipc.address";  
-  private final static String DN_IPC_ADDRESS_DEFAULT = "0.0.0.0:0";
+  public final static String DN_IPC_ADDRESS_KEY = "dfs.datanode.ipc.address";
+  public final static String DN_IPC_ADDRESS_DEFAULT = "0.0.0.0:0";
   
-  private final static String DN_HTTP_ADDRESS_KEY = "dfs.datanode.http.address";  
-  private final static String DN_HTTP_ADDRESS_DEFAULT = "0.0.0.0:0";
+  public final static String DN_HTTP_ADDRESS_KEY = "dfs.datanode.http.address";
+  public final static String DN_HTTP_ADDRESS_DEFAULT = "0.0.0.0:0";
   
   private static final String USAGE =
       "Usage: sodonnell.MultipleDatanode numberOfNodes\n" +
@@ -101,13 +102,15 @@ public class MultipleDatanode {
   private String dataDirectoryRoot;
   private String blockPoolId;
   private Boolean isSimulated = SIMULATED_STORAGE_DEFAULT;
+  private int volumesPerDn;
   
   public MultipleDatanode() {
-    runningDataNodes = new HashMap<Integer, MultipleDatanodeInstance>();
+    runningDataNodes = new ConcurrentHashMap<Integer, MultipleDatanodeInstance>();
     Configuration conf = new Configuration();
     Configuration.addDefaultResource("hdfs-default.xml");
     Configuration.addDefaultResource("hdfs-site.xml");
     dataDirectoryRoot = conf.get(STORAGE_ROOT_KEY, STORAGE_ROOT_DEFAULT);
+    volumesPerDn = conf.getInt(NUMBER_OF_VOLUMES_KEY, NUMBER_OF_VOLUMES_DEFAULT);
     setBlockPoolId(conf);
     System.out.println("BPID: "+blockPoolId);
     isSimulated =  conf.getBoolean(SIMULATED_STORAGE_KEY, SIMULATED_STORAGE_DEFAULT);
@@ -161,80 +164,42 @@ public class MultipleDatanode {
     }
   }
   
-  public MultipleDatanodeInstanceList startDatanodes(int numberToStart) { 
-    MultipleDatanodeInstanceList results = new MultipleDatanodeInstanceList(); 
+  public MultipleDatanodeInstanceList startDatanodes(int numberToStart) {
+    LOG.info("Entered startDatanodes");
+    MultipleDatanodeInstanceList results = new MultipleDatanodeInstanceList();
+    List<Thread> startingThreads = new ArrayList<Thread>();
     for (int i=getMaxDnId()+1; i<=numberToStart; i++) {
+      final int dn = i;
+      Thread t = new Thread() {
+        public void run() {
+          try {
+            results.addInstance(startDataNode(dn));
+          } catch (Exception e) {
+            results.addException(e);
+          }
+        }
+      };
+      t.start();
+      startingThreads.add(t);
+    }
+    for (Thread t : startingThreads) {
       try {
-        results.addInstance(startDataNode(i));
-      } catch (Exception e) {
-        results.addException(e);  
+        t.join();
+      } catch (InterruptedException ie) {
+        results.addException(ie);
       }
     }
     return results;
   }
-  
-  public synchronized MultipleDatanodeInstance startDataNode(int dnId) 
+
+  public MultipleDatanodeInstance startDataNode(int dnId)
       throws MultipleDatanodeException, MultipleDatanodeRunningException {
-    MultipleDatanodeInstance dni = runningDataNodes.get(dnId);
-    if (dni != null  && !dni.isStopped()) {
+    MultipleDatanodeInstance dni = getOrCreateDni(dnId);
+    if (!dni.isStopped()) {
       throw new MultipleDatanodeRunningException("DataNode "+dnId+" is already running");
     }
-    
     try {
-      // Explicitly asking for a Conf without defaults, and then loading hdfs-site.xml
-      // This allows us to use either the value passed in hdfs-site.xml, or the default
-      // hardcoded here, especially for the DN address keys.
-      Configuration conf = new Configuration(false);
-      conf.addResource("hdfs-site.xml");
-     
-      int numVolumes = conf.getInt(NUMBER_OF_VOLUMES_KEY, NUMBER_OF_VOLUMES_DEFAULT);
-      conf.set(DN_STORAGE_KEY, generateStorageDirs(dataDirectoryRoot, dnId, numVolumes));
-      
-      conf.set(DN_XFER_ADDRESS_KEY,
-          conf.get(DN_XFER_ADDRESS_KEY, DN_XFER_ADDRESS_DEFAULT));
-      conf.set(DN_IPC_ADDRESS_KEY,
-          conf.get(DN_IPC_ADDRESS_KEY, DN_IPC_ADDRESS_DEFAULT));
-      conf.set(DN_HTTP_ADDRESS_KEY,
-          conf.get(DN_HTTP_ADDRESS_KEY, DN_HTTP_ADDRESS_DEFAULT));
-            
-      if (dni != null) {
-        // Reuse the same ports as before. This prevent a DN restart leaving a 'dead node'
-        // that the NN will send clients to for 10 minutes if a DN is restarted and comes
-        // back up with different ports.        
-        conf.set(DN_XFER_ADDRESS_KEY,
-            conf.get(DN_XFER_ADDRESS_KEY).replaceAll("^([^:]+:)\\d+$" ,"$1"+dni.getXferPort()));
-        conf.set(DN_IPC_ADDRESS_KEY,
-            conf.get(DN_IPC_ADDRESS_KEY).replaceAll("^([^:]+:)\\d+$" ,"$1"+dni.getIpcPort()));
-        conf.set(DN_HTTP_ADDRESS_KEY,
-            conf.get(DN_HTTP_ADDRESS_KEY).replaceAll("^([^:]+:)\\d+$" ,"$1"+dni.getInfoPort()));
-      }
-      if (isSimulated) {
-        SimulatedFSDataset.setFactory(conf);
-      }
-      
-      DataNode dn = DataNode.instantiateDataNode(new String[0], conf, null);
-      dn.runDatanodeDaemon();
-
-      // Wait for the DN to register with the NN
-      // TODO - implement a timeout
-      while (DataNodeTestUtils.getFSDataset(dn) == null) {
-        Thread.sleep(100);
-      }
-
-      if (dni == null) {
-        dni = new MultipleDatanodeInstance(dnId, dn);
-        runningDataNodes.put(dnId, dni);
-      } else {
-        dni.setNewDnInstance(dn);
-      }
-
-      if (isSimulated) {
-        String blockListFile = dataDirectoryRoot + "/" + dnId + "/blockList";
-        if (new File(blockListFile).exists()) {
-          dni.injectBlocksInFile(blockListFile, blockPoolId);
-        }
-      }
-
+      dni.start();
       return dni;
     } catch (IOException e) {
       throw new MultipleDatanodeException("Failed to start datanode "+dnId, e);
@@ -251,9 +216,7 @@ public class MultipleDatanode {
     }
 
     try {
-      dni.getDn().shutdownDatanode(false);
-      // TODO - Should we wait for the DN to shutdown before returning?
-      dni.setStopped();
+      dni.stop();
       return dni;
     } catch (IOException e) {
       throw new MultipleDatanodeException("Failed to stop datanode " + dnId, e);
@@ -269,6 +232,30 @@ public class MultipleDatanode {
       }
     }
     throw new MultipleDatanodeRunningException("No DataNodes is running on port "+ port);  
+  }
+
+  private synchronized MultipleDatanodeInstance getOrCreateDni(int dnId) {
+    MultipleDatanodeInstance dni = runningDataNodes.get(dnId);
+    if (dni != null) {
+      return dni;
+    }
+    Configuration conf = new Configuration(false);
+    conf.addResource("hdfs-site.xml");
+
+    conf.set(DN_STORAGE_KEY, generateStorageDirs(dataDirectoryRoot, dnId, volumesPerDn));
+    conf.set(DN_XFER_ADDRESS_KEY,
+        conf.get(DN_XFER_ADDRESS_KEY, DN_XFER_ADDRESS_DEFAULT));
+    conf.set(DN_IPC_ADDRESS_KEY,
+        conf.get(DN_IPC_ADDRESS_KEY, DN_IPC_ADDRESS_DEFAULT));
+    conf.set(DN_HTTP_ADDRESS_KEY,
+        conf.get(DN_HTTP_ADDRESS_KEY, DN_HTTP_ADDRESS_DEFAULT));
+
+    if (isSimulated) {
+      SimulatedFSDataset.setFactory(conf);
+    }
+    dni = new MultipleDatanodeInstance(dnId, conf, blockPoolId, dataDirectoryRoot+"/"+dnId);
+    runningDataNodes.put(dnId, dni);
+    return dni;
   }
   
   private String generateStorageDirs(String root, int dnId, int num) {
