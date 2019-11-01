@@ -66,7 +66,7 @@ class HdfsImage
     # Now generate the base folder structure which has @level_one_count directories
     1.upto(@level_one_count) do |i|
       inode_counter += 1
-      output_inode_dir(inode_counter, "level1_#{i-1}")
+      output_inode_dir(inode_counter, "level1_#{(i-1).to_s.rjust(4, "0")}")
     end
     
     # Add in the level two folders. Each level_1 folder has level_two_count sub-directories
@@ -74,7 +74,7 @@ class HdfsImage
     1.upto(@level_one_count) do |i|
       1.upto(@level_two_count) do |j|
         inode_counter += 1
-        output_inode_dir(inode_counter, "level2_#{j-1}")
+        output_inode_dir(inode_counter, "level2_#{(j-1).to_s.rjust(4, "0")}")
       end
     end
     @leaf_inode_end = inode_counter
@@ -88,7 +88,7 @@ class HdfsImage
       inode_counter += 1
       block_id_counter += 1
       gen_stamp_counter += 1
-      output_inode_file(inode_counter, "file_#{i}", block_id_counter, gen_stamp_counter, @replication_factor, ONE_MB*@block_size_mb)
+      output_inode_file(inode_counter, "file_#{i.to_s.rjust(11, "0")}", block_id_counter, gen_stamp_counter, @replication_factor, ONE_MB*@block_size_mb)
       if @block_file_writer
         # output the block to the blocklists
         @block_file_writer.write_block(block_id_counter, gen_stamp_counter, ONE_MB*@block_size_mb, @replication_factor)
