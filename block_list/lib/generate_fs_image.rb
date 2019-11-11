@@ -1,5 +1,5 @@
 class HdfsImage
-  attr_accessor :level_one_count, :level_two_count, :files_per_directory, :replication_factor, :layout_version, :namespace_id, :block_count, :block_size_mb, :block_file_writer, :output_path
+  attr_accessor :level_one_count, :level_two_count, :files_per_directory, :replication_factor, :layout_version, :namespace_id, :block_count, :block_size_mb, :block_file_writer, :output_path, :layout_version
 
   ROOT_INODE = 16385
   ONE_MB     = 1024 * 1024
@@ -13,7 +13,7 @@ class HdfsImage
     @level_two_count = 256
     @files_per_directory = 1000
     @replication_factor = 3
-    @layout_version = "-64"
+    @layout_version = "-65"
     @namespace_id = "2140017751"
     @block_count = 1000
     @block_size_mb = 10
@@ -278,6 +278,7 @@ class HdfsImageCLIFactory
       :replication_factor => 3,
       :datanode_count => 0,
       :files_per_directory => 1000,
+      :layout_version => -65,
       :level_one_count => 256,
       :level_two_count => 256
     }
@@ -289,6 +290,7 @@ class HdfsImageCLIFactory
       opt.on('-r', '--replication-factor NUM', 'Replication factor of each file (3)') { |o| options[:replication_factor] = o.to_i }
       opt.on('-d', '--datanode-count NUM', 'Number of datanode block list files. Setting to zero disables generating block lists (0)') { |o| options[:datanode_count] = o.to_i }
       opt.on('-f', '--files-per-directory NUM', 'Number of files in each generated directory (1000)') { |o| options[:files_per_directory] = o.to_i }
+      opt.on('-v', '--version NUM', 'The HDFS FSImage layout version, eg -64, -65 etc (-65)') { |o| options[:layout_version] = o.to_i }
       opt.on('--level-one-count NUM', 'Number of folders in the top level directory (256)') { |o| options[:level_one_count] = o.to_i }
       opt.on('--level-two-count NUM', 'Number of sub-folders in each top level directory (256)') { |o| options[:level_two_count] = o.to_i }
     end.parse!
@@ -306,6 +308,7 @@ class HdfsImageCLIFactory
       img.level_one_count = options[:level_one_count]
       img.level_two_count = options[:level_two_count]
       img.output_path = options[:output_path]
+      img.layout_version = options[:layout_version]
       img.block_file_writer = bfw
     end
   end
